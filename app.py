@@ -188,7 +188,8 @@ def newsletter():
     
     return render_template("newsletter.html", fullname=fullname, msg=msg)
 
-
+html <
+        html>
 
 
 if __name__ == "__main__":
