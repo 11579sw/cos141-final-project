@@ -9,9 +9,10 @@
 3. create python virual enviornment \
 ```python -m venv env```
    
-4. activate the python virual enviornment \
+4. activate the python virtual environment \
    (for windows): ```.\env\Scripts\activate``` \
-   (for mac): ```source env/bin/activate```
+   (for mac): ```source env/bin/activate``` \
+   (for linux): ```source env/bin/activate ```
    
 5. upgrade the pip \
 ```python -m pip install --upgrade pip```
