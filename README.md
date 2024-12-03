@@ -1,7 +1,7 @@
 # Demo project for database course
 
 ## Setup Instructions:
-
+```fff```
 1. download and unzip this repo
 
 2. import into visual studio code
