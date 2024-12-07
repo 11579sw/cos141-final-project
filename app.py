@@ -14,28 +14,12 @@ app.config['MYSQL_DATABASE_HOST'] = db['mysql_host']
 app.config['MYSQL_DATABASE_USER'] = db['mysql_user']
 app.config['MYSQL_DATABASE_PASSWORD'] = db['mysql_password']
 app.config['MYSQL_DATABASE_DB'] = db['mysql_db']
-
-'''
 mysql.init_app(app)
-'''
-
-# change this to your secret key
-# (can be anything, it's for extra protection)
 app.secret_key = "feitian"
 
-
-# http://localhost:5000/login/ - this will be the login page
 @app.route("/login/", methods=["GET", "POST"])
 def login():
-
-    # connect
-#    conn = mysql.connect()
-#    cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-    # output message if something goes wrong...
     msg = ""
-
-    # check if "username" and "password" POST requests exist (user submitted form)
     if (request.method == "POST"
         and "username" in request.form
         and "password" in request.form):
@@ -43,62 +27,50 @@ def login():
         # create variables for easy access
         username = request.form["username"]
         password = request.form["password"]
+        msg = ""
 
-        # check if account exists using MySQL
-        '''
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
         cursor.execute(
             "SELECT * FROM accounts WHERE username = %s AND password = %s",
             (username, password),
         )
-
-        # fetch one record and return result
         account = cursor.fetchone()
-        '''
-        account = []
-        # if account exists in accounts table in out database
+
         if account:
-            # create session data, we can access this data in other routes
             session["loggedin"] = True
             session["id"] = account["id"]
             session["username"] = account["username"]
 
-            # redirect to home page
-            # return 'Logged in successfully!'
             return redirect(url_for("home"))
-
         else:
-            # account doesnt exist or username/password incorrect
             msg = "Incorrect username/password!"
-
     return render_template("index.html", msg=msg)
 
-
-# http://localhost:5000/register - this will be the registration page
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    # connect
-    conn = mysql.connect()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-    # output message if something goes wrong...
-    msg = ""
-    # check if "username", "password" and "email" POST requests exist (user submitted form)
     if (request.method == "POST"
         and "username" in request.form
         and "password" in request.form
         and "email" in request.form):
 
-        # create variables for easy access
         fullname = request.form["fullname"]
         username = request.form["username"]
         password = request.form["password"]
         email = request.form["email"]
 
-        # check if account exists using MySQL
+        print(fullname)
+        print(username)
+        print(password)
+        print(email)
+
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        msg = ""
         cursor.execute("SELECT * FROM accounts WHERE username = %s", (username))
         account = cursor.fetchone()
 
-        # if account exists show error and validation checks
         if account:
             msg = "Account already exists!"
         elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
@@ -108,73 +80,81 @@ def register():
         elif not username or not password or not email:
             msg = "Please fill out the form!"
         else:
-            # account doesnt exists and the form data is valid, now insert new account into accounts table
             cursor.execute(
                 "INSERT INTO accounts VALUES (NULL, %s, %s, %s, %s)",
                 (fullname, username, password, email),
             )
-
             conn.commit()
             msg = "You have successfully registered!"
-
-    elif request.method == "POST":
-        # form is empty... (no POST data)
+    elif request.method == "GET":
         msg = "Please fill out the form!"
 
-    # show registration form with message (if any)
     return render_template("register.html", msg=msg)
 
-
-# http://localhost:5000/home - this will be the home page, only accessible for loggedin users
 @app.route("/")
 def home():
-    # check if user is loggedin
+    
     if "loggedin" in session:
-        # user is loggedin show them the home page
         return render_template("home.html", username=session["username"])
+    else:
+        return redirect(url_for("login"))
 
-    # user is not loggedin redirect to login page
-    return redirect(url_for("login"))
 
-
-# http://localhost:5000/logout - this will be the logout page
 @app.route("/logout")
 def logout():
-    # remove session data, this will log the user out
     session.pop("loggedin", None)
     session.pop("id", None)
     session.pop("username", None)
-
-    # redirect to login page
     return redirect(url_for("login"))
 
 
-# http://localhost:5000/profile - this will be the profile page, only accessible for loggedin users
 @app.route("/profile")
 def profile():
-    # check if account exists using MySQL
-    conn = mysql.connect()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-
-    # check if user is loggedin
     if "loggedin" in session:
-        # we need all the account info for the user so we can display it on the profile page
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
         cursor.execute("SELECT * FROM accounts WHERE id = %s", [session["id"]])
         account = cursor.fetchone()
-
-        # show the profile page with account info
         return render_template("profile.html", account=account)
+    else:
+        return redirect(url_for("login"))
+    
+@app.route("/setting", methods=["GET", "POST"])
+def setting():
+    # if "loggedin" in session:
+        
+    #     return render_template("setting.html")
+    # else:
+    #     return redirect(url_for("login"))
+    if (request.method == "POST"
+        and "password" in request.form
+        and "email" in request.form):
 
-    # user is not loggedin redirect to login page
-    return redirect(url_for("login"))
+        password = request.form["password"]
+        email = request.form["email"]
+
+        print(password)
+        print(email)
+        conn = mysql.connect()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute("UPDATE accounts  SET password = %s, email= %s  WHERE username = %s", (password, email, session["username"]) )   
+        conn.commit()                                                            # add
+
+        cursor.execute("SELECT * FROM accounts WHERE id = %s", [session["id"]])  # add
+        value_FromDB = cursor.fetchone()                                         # add
+
+        return render_template("profile.html", account = value_FromDB) 
+
+
+    elif request.method == "GET":
+        return render_template("setting.html")
+
 @app.route("/newsletter", methods=["GET", "POST"])
 def newsletter():
     msg = ""
     if request.method == "POST":
         fullname = request.form["fullname"]
         email = request.form["email"]
-        
-        # SQL insert
         conn = mysql.connect()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
         cursor.execute(
@@ -185,7 +165,6 @@ def newsletter():
         msg = "Successfully inserted into users table"
     else:
         fullname = "Zeno"
-    
     return render_template("newsletter.html", fullname=fullname, msg=msg)
 
 
